@@ -12,8 +12,6 @@ CREATE TABLE users (
     dob DATE,
     region VARCHAR(50),
     image VARCHAR(255),
-    current_point integer default 0 check (current_point >= 0),
-    lifetime_point integer default 0 check ( lifetime_point >= 0),
     is_verified BOOLEAN DEFAULT FALSE,
     code VARCHAR(8),
     code_expire_at TIMESTAMPTZ,
@@ -21,6 +19,15 @@ CREATE TABLE users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     verified_at TIMESTAMPTZ,
     last_login TIMESTAMPTZ
+);
+
+create table user_wallet (
+    id serial primary key,
+    user_id uuid references users(id),
+    current_point integer default 0 check (current_point >= 0),
+    special_point integer default 0 check (current_point >= 0),
+    special_point_expire_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), -- GENERALLY 1 week after obtaining them
+    lifetime_point integer default 0 check ( lifetime_point >= 0)
 );
 
 -- Platform admins
@@ -234,7 +241,8 @@ CREATE TYPE order_status AS ENUM (
     'ready',
     'out_for_delivery',
     'delivered',
-    'cancelled'
+    'cancelled',
+    'completed'
 );
 
 CREATE TABLE orders (
@@ -248,6 +256,12 @@ CREATE TABLE orders (
     special_instructions TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- payment for an order done through points and can be subjected to reductions or special event
+CREATE table payment(
+    order_id bigint references orders(id),
+    points
 );
 
 CREATE TABLE order_drinks (
@@ -268,8 +282,33 @@ CREATE TABLE order_dish (
     total_price DECIMAL(10, 2) NOT NULL CHECK (total_price >= 0)
 );
 
-create table rewards (
-    id serial primary key,
-    condition text,
+CREATE TYPE transaction_type AS ENUM (
+    'top_up',
+    'withdrawer'
+);
 
+CREATE TABLE transactions (
+    id BIGSERIAL PRIMARY KEY,
+    amount DECIMAL(10, 2) NOT NULL CHECK (amount > 0),
+    reason TEXT,
+    type transaction_type,
+    trx_id VARCHAR(255) UNIQUE NOT NULL,
+    phone VARCHAR(20),
+    is_verified BOOLEAN DEFAULT FALSE,
+    verified_at TIMESTAMP,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+
+CREATE TABLE branch_wallets (
+    id SERIAL PRIMARY KEY,
+    branch_id INTEGER UNIQUE NOT NULL REFERENCES restaurant_branches(id) ON DELETE CASCADE,
+    restaurant_id INTEGER NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
+    current_balance DECIMAL(12, 2) DEFAULT 0 CHECK (current_balance >= 0),
+    total_earned DECIMAL(12, 2) DEFAULT 0 CHECK (total_earned >= 0),
+    total_spent DECIMAL(12, 2) DEFAULT 0 CHECK (total_spent >= 0),
+    pending_balance DECIMAL(12, 2) DEFAULT 0 CHECK (pending_balance >= 0),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
