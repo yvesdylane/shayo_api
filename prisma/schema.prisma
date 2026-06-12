@@ -1,0 +1,534 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum FoodType {
+  appetizer
+  main_course
+  dessert
+  chewable
+
+  @@map("food_type")
+}
+
+enum DrinkType {
+  juice
+  fruit_juice
+  homemade_alcohol
+  whisky
+  wine
+  beer
+  soft_drink
+  water
+
+  @@map("drink_type")
+}
+
+enum OrderStatus {
+  pending
+  confirmed
+  preparing
+  ready
+  out_for_delivery
+  delivered
+  cancelled
+  completed
+
+  @@map("order_status")
+}
+
+enum TransactionType {
+  top_up
+  withdrawer
+
+  @@map("transaction_type")
+}
+
+enum TransactionProvider {
+  mtn_momo
+  orange_money
+
+  @@map("transaction_provider")
+}
+
+enum PromotionType {
+  top_up_bonus
+  order_deduction
+  special_point_grant
+
+  @@map("promotion_type")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  firstName    String?   @map("first_name") @db.VarChar(50)
+  surName      String?   @map("sur_name") @db.VarChar(50)
+  email        String    @unique @db.VarChar(100)
+  phone        String?   @unique @db.VarChar(20)
+  userName     String    @unique @map("user_name") @db.VarChar(50)
+  password     String    @db.VarChar(255)
+  bio          String?   @db.Text
+  dob          DateTime? @db.Date
+  region       String?   @db.VarChar(50)
+  image        String?   @db.VarChar(255)
+  isVerified   Boolean   @default(false) @map("is_verified")
+  code         String?   @db.VarChar(8)
+  codeExpireAt DateTime? @map("code_expire_at") @db.Timestamptz
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamptz
+  lastLogin    DateTime? @map("last_login") @db.Timestamptz
+
+  wallet          UserWallet?
+  dishReviews     DishReview[]
+  drinkReviews    DrinkReview[]
+  branchReviews   BranchReview[]
+  orders          Order[]
+  payments        Payment[]
+  transactions    Transaction[]
+  notifications   UserNotification[]
+  restaurantUsers RestaurantUser[]
+  admin           Admin?
+
+  @@map("users")
+}
+
+model UserWallet {
+  id            Int    @id @default(autoincrement())
+  userId        String @unique @map("user_id") @db.Uuid
+  currentPoint  Int    @default(0) @map("current_point")
+  lifetimePoint Int    @default(0) @map("lifetime_point")
+
+  user               User                @relation(fields: [userId], references: [id])
+  specialPointGrants SpecialPointGrant[]
+
+  @@index([userId])
+  @@map("user_wallet")
+}
+
+model SpecialPointGrant {
+  id        Int      @id @default(autoincrement())
+  walletId  Int      @map("wallet_id")
+  amount    Int
+  remaining Int
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  source    String?  @db.VarChar(255)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  wallet UserWallet @relation(fields: [walletId], references: [id], onDelete: Cascade)
+
+  @@index([walletId])
+  @@index([expiresAt])
+  @@map("special_point_grants")
+}
+
+model Admin {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique @map("user_id") @db.Uuid
+  rank      String   @db.VarChar(2)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("admins")
+}
+
+model Restaurant {
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(100)
+  logo       String?  @db.VarChar(255)
+  image      String?  @db.VarChar(255)
+  email      String?  @unique @db.VarChar(100)
+  phone      String?  @db.VarChar(20)
+  rating     Float    @default(0)
+  isVerified Boolean  @default(false) @map("is_verified")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  branches        RestaurantBranch[]
+  restaurantUsers RestaurantUser[]
+  dishes          RestaurantDish[]
+  drinks          RestaurantDrink[]
+  branchWallets   BranchWallet[]
+
+  @@map("restaurants")
+}
+
+model RestaurantBranch {
+  id           Int      @id @default(autoincrement())
+  restaurantId Int      @map("restaurant_id")
+  image        String?  @db.VarChar(255)
+  name         String   @db.VarChar(100)
+  location     String?  @db.Text
+  email        String?  @db.VarChar(100)
+  phone        String?  @db.VarChar(20)
+  rating       Float    @default(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  restaurant      Restaurant           @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantUsers RestaurantUser[]
+  branchDishes    BranchDish[]
+  branchDrinks    BranchDrink[]
+  branchReviews   BranchReview[]
+  orders          Order[]
+  transactions    Transaction[]
+  wallet          BranchWallet?
+  notifications   BranchNotification[]
+
+  @@index([restaurantId])
+  @@map("restaurant_branches")
+}
+
+model RestaurantUser {
+  id                 Int    @id @default(autoincrement())
+  userId             String @map("user_id") @db.Uuid
+  restaurantId       Int    @map("restaurant_id")
+  rank               String @db.VarChar(2)
+  restaurantBranchId Int?   @map("restaurant_branch_id")
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  restaurant Restaurant        @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  branch     RestaurantBranch? @relation(fields: [restaurantBranchId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, restaurantId, restaurantBranchId])
+  @@index([userId])
+  @@index([restaurantId])
+  @@map("restaurant_users")
+}
+
+model Dish {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(255)
+  description String?   @db.Text
+  type        FoodType?
+  origin      String?   @db.VarChar(50)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+
+  restaurantDishes RestaurantDish[]
+
+  @@map("dishes")
+}
+
+model Drink {
+  id          Int        @id @default(autoincrement())
+  name        String     @db.VarChar(255)
+  type        DrinkType?
+  description String?    @db.Text
+  origin      String?    @db.VarChar(50)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  restaurantDrinks RestaurantDrink[]
+
+  @@map("drinks")
+}
+
+model RestaurantDish {
+  id           Int      @id @default(autoincrement())
+  dishId       Int      @map("dish_id")
+  restaurantId Int      @map("restaurant_id")
+  price        Decimal  @db.Decimal(10, 2)
+  isAvailable  Boolean  @default(true) @map("is_available")
+  rating       Float    @default(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  dish         Dish         @relation(fields: [dishId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  branchDishes BranchDish[]
+
+  @@unique([dishId, restaurantId])
+  @@index([restaurantId])
+  @@map("restaurant_dishes")
+}
+
+model RestaurantDrink {
+  id           Int      @id @default(autoincrement())
+  drinkId      Int      @map("drink_id")
+  restaurantId Int      @map("restaurant_id")
+  price        Decimal  @db.Decimal(10, 2)
+  isAvailable  Boolean  @default(true) @map("is_available")
+  rating       Float    @default(0)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  drink        Drink         @relation(fields: [drinkId], references: [id], onDelete: Cascade)
+  restaurant   Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  branchDrinks BranchDrink[]
+
+  @@unique([drinkId, restaurantId])
+  @@index([restaurantId])
+  @@map("restaurant_drinks")
+}
+
+model BranchDish {
+  id               Int      @id @default(autoincrement())
+  branchId         Int      @map("branch_id")
+  restaurantDishId Int      @map("restaurant_dish_id")
+  price            Decimal? @db.Decimal(10, 2)
+  isAvailable      Boolean  @default(true) @map("is_available")
+  rating           Float    @default(0)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  branch         RestaurantBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  restaurantDish RestaurantDish   @relation(fields: [restaurantDishId], references: [id], onDelete: Cascade)
+  reviews        DishReview[]
+  orderDishes    OrderDish[]
+
+  @@unique([branchId, restaurantDishId])
+  @@index([branchId])
+  @@map("branch_dishes")
+}
+
+model BranchDrink {
+  id                Int      @id @default(autoincrement())
+  branchId          Int      @map("branch_id")
+  restaurantDrinkId Int      @map("restaurant_drink_id")
+  price             Decimal? @db.Decimal(10, 2)
+  isAvailable       Boolean  @default(true) @map("is_available")
+  rating            Float    @default(0)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  branch          RestaurantBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  restaurantDrink RestaurantDrink  @relation(fields: [restaurantDrinkId], references: [id], onDelete: Cascade)
+  reviews         DrinkReview[]
+  orderDrinks     OrderDrink[]
+
+  @@unique([branchId, restaurantDrinkId])
+  @@index([branchId])
+  @@map("branch_drinks")
+}
+
+model DishReview {
+  id            BigInt   @id @default(autoincrement())
+  dishId        Int      @map("dish_id")
+  userId        String   @map("user_id") @db.Uuid
+  message       String?  @db.Text
+  quality       Decimal? @db.Decimal(2, 1)
+  quantity      Decimal? @db.Decimal(2, 1)
+  presentation  Decimal? @db.Decimal(2, 1)
+  overallRating Decimal? @map("overall_rating") @db.Decimal(3, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  dish BranchDish @relation(fields: [dishId], references: [id])
+  user User       @relation(fields: [userId], references: [id])
+
+  @@unique([userId, dishId])
+  @@index([dishId])
+  @@index([userId])
+  @@map("dish_review")
+}
+
+model DrinkReview {
+  id            BigInt   @id @default(autoincrement())
+  drinkId       Int      @map("drink_id")
+  userId        String   @map("user_id") @db.Uuid
+  message       String?  @db.Text
+  quality       Decimal? @db.Decimal(2, 1)
+  quantity      Decimal? @db.Decimal(2, 1)
+  presentation  Decimal? @db.Decimal(2, 1)
+  overallRating Decimal? @map("overall_rating") @db.Decimal(3, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  drink BranchDrink @relation(fields: [drinkId], references: [id])
+  user  User        @relation(fields: [userId], references: [id])
+
+  @@unique([userId, drinkId])
+  @@index([drinkId])
+  @@index([userId])
+  @@map("drink_review")
+}
+
+model BranchReview {
+  id            BigInt   @id @default(autoincrement())
+  branchId      Int      @map("branch_id")
+  userId        String   @map("user_id") @db.Uuid
+  message       String?  @db.Text
+  quality       Decimal? @db.Decimal(2, 1)
+  quantity      Decimal? @db.Decimal(2, 1)
+  presentation  Decimal? @db.Decimal(2, 1)
+  overallRating Decimal? @map("overall_rating") @db.Decimal(3, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  branch RestaurantBranch @relation(fields: [branchId], references: [id])
+  user   User             @relation(fields: [userId], references: [id])
+
+  @@unique([userId, branchId])
+  @@index([branchId])
+  @@index([userId])
+  @@map("branch_review")
+}
+
+model UserNotification {
+  id        Int      @id @default(autoincrement())
+  userId    String   @map("user_id") @db.Uuid
+  content   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("user_notifications")
+}
+
+model BranchNotification {
+  id        Int      @id @default(autoincrement())
+  branchId  Int      @map("branch_id")
+  content   String   @db.Text
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  branch RestaurantBranch @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("branch_notifications")
+}
+
+model Order {
+  id                  BigInt      @id @default(autoincrement())
+  userId              String?     @map("user_id") @db.Uuid
+  branchId            Int?        @map("branch_id")
+  totalPrice          Decimal     @map("total_price") @db.Decimal(10, 2)
+  status              OrderStatus @default(pending)
+  isDelivery          Boolean     @default(false) @map("is_delivery")
+  deliveryAddress     String?     @map("delivery_address") @db.Text
+  specialInstructions String?     @map("special_instructions") @db.Text
+  createdAt           DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  user        User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  branch      RestaurantBranch? @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  payment     Payment?
+  orderDishes OrderDish[]
+  orderDrinks OrderDrink[]
+
+  @@index([userId])
+  @@index([branchId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model Payment {
+  userId    String  @map("user_id") @db.Uuid
+  orderId   BigInt  @id @map("order_id")
+  points    Int?
+  deduction Int?
+  reason    String? @db.Text
+
+  user  User  @relation(fields: [userId], references: [id])
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([userId])
+  @@map("payment")
+}
+
+model OrderDish {
+  id         BigInt  @id @default(autoincrement())
+  orderId    BigInt  @map("order_id")
+  dishId     Int     @map("dish_id")
+  quantity   Int
+  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+
+  order Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  dish  BranchDish @relation(fields: [dishId], references: [id])
+
+  @@index([orderId])
+  @@map("order_dish")
+}
+
+model OrderDrink {
+  id         BigInt  @id @default(autoincrement())
+  orderId    BigInt  @map("order_id")
+  drinkId    Int     @map("drink_id")
+  quantity   Int
+  unitPrice  Decimal @map("unit_price") @db.Decimal(10, 2)
+  totalPrice Decimal @map("total_price") @db.Decimal(10, 2)
+
+  order Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  drink BranchDrink @relation(fields: [drinkId], references: [id])
+
+  @@index([orderId])
+  @@map("order_drinks")
+}
+
+model Transaction {
+  id         BigInt              @id @default(autoincrement())
+  userId     String              @map("user_id") @db.Uuid
+  branchId   Int?                @map("branch_id")
+  provider   TransactionProvider
+  amount     Decimal             @db.Decimal(10, 2)
+  reason     String?             @db.Text
+  type       TransactionType?
+  trxId      String              @unique @map("trx_id") @db.VarChar(255)
+  phone      String?             @db.VarChar(20)
+  isVerified Boolean             @default(false) @map("is_verified")
+  verifiedAt DateTime?           @map("verified_at") @db.Timestamptz
+  createdAt  DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  user   User              @relation(fields: [userId], references: [id])
+  branch RestaurantBranch? @relation(fields: [branchId], references: [id])
+
+  @@index([userId])
+  @@index([branchId])
+  @@index([createdAt])
+  @@map("transactions")
+}
+
+model BranchWallet {
+  id             Int      @id @default(autoincrement())
+  branchId       Int      @unique @map("branch_id")
+  restaurantId   Int      @map("restaurant_id")
+  currentBalance Decimal  @default(0) @map("current_balance") @db.Decimal(12, 2)
+  totalEarned    Decimal  @default(0) @map("total_earned") @db.Decimal(12, 2)
+  totalSpent     Decimal  @default(0) @map("total_spent") @db.Decimal(12, 2)
+  pendingBalance Decimal  @default(0) @map("pending_balance") @db.Decimal(12, 2)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  branch     RestaurantBranch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  restaurant Restaurant       @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  @@index([branchId])
+  @@map("branch_wallets")
+}
+
+model Promotion {
+  id          Int           @id @default(autoincrement())
+  name        String        @db.VarChar(255)
+  description String?       @db.Text
+  type        PromotionType
+  config      Json          @default("{}") @db.JsonB
+  startDate   DateTime      @map("start_date") @db.Timestamptz
+  endDate     DateTime?     @map("end_date") @db.Timestamptz
+  isActive    Boolean       @default(true) @map("is_active")
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([type])
+  @@index([startDate, endDate])
+  @@map("promotions")
+}
+
+model SystemSetting {
+  id             Int    @id @default(autoincrement())
+  number         String @default("+237652650173") @db.VarChar(16)
+  conversionRate Int    @default(1) @map("conversion_rate")
+
+  @@map("system_settings")
+}

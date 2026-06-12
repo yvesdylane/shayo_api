@@ -23,7 +23,7 @@ CREATE TABLE users (
 
 CREATE TABLE user_wallet (
     id SERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id),
+    user_id UUID NOT NULL UNIQUE REFERENCES users(id),
     current_point INTEGER DEFAULT 0 CHECK (current_point >= 0),
     lifetime_point INTEGER DEFAULT 0 CHECK (lifetime_point >= 0)
 );
@@ -187,10 +187,7 @@ CREATE TABLE dish_review (
     quality NUMERIC(2,1) CHECK (quality BETWEEN 0 AND 5),
     quantity NUMERIC(2,1) CHECK (quantity BETWEEN 0 AND 5),
     presentation NUMERIC(2,1) CHECK (presentation BETWEEN 0 AND 5),
-    overall_rating NUMERIC(3,2) GENERATED ALWAYS AS (
-        (COALESCE(quality, 0) + COALESCE(quantity, 0) + COALESCE(presentation, 0)) /
-        NULLIF((quality IS NOT NULL)::INT + (quantity IS NOT NULL)::INT + (presentation IS NOT NULL)::INT, 0)
-    ) STORED,
+    overall_rating NUMERIC(3,2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, dish_id)
@@ -204,10 +201,7 @@ CREATE TABLE drink_review (
     quality NUMERIC(2,1) CHECK (quality BETWEEN 0 AND 5),
     quantity NUMERIC(2,1) CHECK (quantity BETWEEN 0 AND 5),
     presentation NUMERIC(2,1) CHECK (presentation BETWEEN 0 AND 5),
-    overall_rating NUMERIC(3,2) GENERATED ALWAYS AS (
-        (COALESCE(quality, 0) + COALESCE(quantity, 0) + COALESCE(presentation, 0)) /
-        NULLIF((quality IS NOT NULL)::INT + (quantity IS NOT NULL)::INT + (presentation IS NOT NULL)::INT, 0)
-    ) STORED,
+    overall_rating NUMERIC(3,2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, drink_id)
@@ -221,10 +215,7 @@ CREATE TABLE branch_review (
     quality NUMERIC(2,1) CHECK (quality BETWEEN 0 AND 5),
     quantity NUMERIC(2,1) CHECK (quantity BETWEEN 0 AND 5),
     presentation NUMERIC(2,1) CHECK (presentation BETWEEN 0 AND 5),
-    overall_rating NUMERIC(3,2) GENERATED ALWAYS AS (
-        (COALESCE(quality, 0) + COALESCE(quantity, 0) + COALESCE(presentation, 0)) /
-        NULLIF((quality IS NOT NULL)::INT + (quantity IS NOT NULL)::INT + (presentation IS NOT NULL)::INT, 0)
-    ) STORED,
+    overall_rating NUMERIC(3,2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(user_id, branch_id)
@@ -259,7 +250,7 @@ CREATE TYPE order_status AS ENUM (
 
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
-    user_id UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     branch_id INTEGER REFERENCES restaurant_branches(id) ON DELETE SET NULL,
     total_price DECIMAL(10, 2) NOT NULL CHECK (total_price >= 0),
     status order_status DEFAULT 'pending',
