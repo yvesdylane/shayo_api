@@ -23,13 +23,59 @@
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+**Shayo** is a multi-branch restaurant ordering platform built with [NestJS](https://github.com/nestjs/nest). It features a points-based closed-loop payment system, mobile money integration (MTN MoMo / Orange Money), and a promotion engine.
 
-## Project setup
+## Tech Stack
+
+- **Framework:** NestJS 11
+- **Language:** TypeScript (ES2023, decorators enabled)
+- **ORM:** Prisma 7
+- **Database:** PostgreSQL 16
+- **Package manager:** pnpm
+
+## Prerequisites
+
+- Node.js 20+
+- pnpm
+- PostgreSQL 16 running locally
+
+## Quick Start
 
 ```bash
-$ pnpm install
+# Install dependencies
+pnpm install
+
+# Create environment file from template
+cp .env.example .env
+
+# Edit .env — set DATABASE_URL to your local PostgreSQL connection string
+
+# Apply database migrations
+npx prisma migrate dev
+
+# Generate Prisma client
+npx prisma generate
+
+# Start dev server (watch mode)
+pnpm start:dev
 ```
+
+The server starts at `http://localhost:3000` (or `PORT` env variable).
+
+## Available Commands
+
+| Action | Command |
+|---|---|
+| Dev server (watch) | `pnpm start:dev` |
+| Build | `pnpm build` |
+| Unit tests | `pnpm test` |
+| E2E tests | `pnpm test:e2e` |
+| Coverage | `pnpm test:cov` |
+| Lint + fix | `pnpm lint` |
+| Format | `pnpm format` |
+| Prisma migrate | `npx prisma migrate dev` |
+| Prisma generate | `npx prisma generate` |
+| Prisma studio | `npx prisma studio` |
 
 ## Compile and run the project
 
