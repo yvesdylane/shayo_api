@@ -1,0 +1,28 @@
+### Register a new user
+POST http://localhost:3000/auth/register
+Content-Type: application/json
+
+{
+  "email": "test@example.com",
+  "password": "password123",
+  "userName": "testuser",
+  "phone": "+237650123456",
+  "firstName": "Test",
+  "surName": "User"
+}
+
+### Login
+POST http://localhost:3000/auth/login
+Content-Type: application/json
+
+{
+  "email": "yvesdylane24@gmail.com",
+  "password": "password123"
+}
+
+### Get current user (replace TOKEN with actual JWT from login response)
+GET http://localhost:3000/user/me
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZDkyZDA3OC0wMWU0LTQ3YTktOGQ3ZC01ODliMGUxYTQxNjIiLCJlbWFpbCI6Inl2ZXNkeWxhbmUyNEBnbWFpbC5jb20iLCJpYXQiOjE3ODE5MjUxMTAsImV4cCI6MTc4MjUyOTkxMH0.oK5IvbYy8HswaZRcgPlpiK4HGgVmzDDF3CBeWb6u3Lg
+
+### Health check
+GET http://localhost:3000
