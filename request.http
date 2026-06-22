@@ -20,9 +20,24 @@ Content-Type: application/json
   "password": "password123"
 }
 
-### Get current user (replace TOKEN with actual JWT from login response)
+### Exchange Better Auth session (cookie-based)
+POST http://localhost:3000/auth/exchange
+Cookie: better-auth.session_token=PASTE_TOKEN_HERE
+
+### Google token exchange
+POST http://localhost:3000/auth/google
+Content-Type: application/json
+
+{
+  "token": "PASTE_BETTER_AUTH_TOKEN_HERE"
+}
+
+### Get current user (replace TOKEN with actual JWT from login/Google response)
 GET http://localhost:3000/user/me
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIyZDkyZDA3OC0wMWU0LTQ3YTktOGQ3ZC01ODliMGUxYTQxNjIiLCJlbWFpbCI6Inl2ZXNkeWxhbmUyNEBnbWFpbC5jb20iLCJpYXQiOjE3ODE5MjUxMTAsImV4cCI6MTc4MjUyOTkxMH0.oK5IvbYy8HswaZRcgPlpiK4HGgVmzDDF3CBeWb6u3Lg
+Authorization: Bearer INSERT_JWT_HERE
 
 ### Health check
 GET http://localhost:3000
+
+### Google test page (open in browser)
+# GET http://localhost:3000/auth/test

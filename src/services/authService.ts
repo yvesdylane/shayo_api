@@ -2,12 +2,14 @@ import {
   Injectable,
   UnauthorizedException,
   ConflictException,
+  InternalServerErrorException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from './prismaService';
 import { RegisterDto } from '../dto/registerDto';
 import { LoginDto } from '../dto/loginDto';
+import { auth } from '../auth/betterAuth';
 
 @Injectable()
 export class AuthService {
@@ -54,6 +56,86 @@ export class AuthService {
     const token = this.generateToken(user.id, user.email);
 
     return { user: this.omitPassword(user), token };
+  }
+
+  async exchange(headers: Record<string, string | string[] | undefined>) {
+    const session = await auth.api.getSession({
+      headers: headers as Record<string, string>,
+    });
+
+    if (!session || !session.user) {
+      throw new UnauthorizedException('Invalid Google session');
+    }
+
+    const { email, name, image } = session.user;
+    if (!email) {
+      throw new InternalServerErrorException(
+        'Google account has no email address',
+      );
+    }
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      const userName =
+        email.split('@')[0] + Math.random().toString(36).slice(2, 6);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          userName,
+          phone: null,
+          password: '',
+          firstName: name?.split(' ')[0] ?? userName,
+          surName: name?.split(' ').slice(1).join(' ') ?? null,
+          image: image ?? null,
+        },
+      });
+    }
+
+    const ourToken = this.generateToken(user.id, user.email);
+
+    return { user: this.omitPassword(user), token: ourToken };
+  }
+
+  async googleExchange(token: string) {
+    const session = await auth.api.getSession({
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    if (!session || !session.user) {
+      throw new UnauthorizedException('Invalid Google session');
+    }
+
+    const { email, name, image } = session.user;
+    if (!email) {
+      throw new InternalServerErrorException(
+        'Google account has no email address',
+      );
+    }
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+
+    if (!user) {
+      const userName =
+        email.split('@')[0] + Math.random().toString(36).slice(2, 6);
+
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          userName,
+          phone: null,
+          password: '',
+          firstName: name?.split(' ')[0] ?? userName,
+          surName: name?.split(' ').slice(1).join(' ') ?? null,
+          image: image ?? null,
+        },
+      });
+    }
+
+    const ourToken = this.generateToken(user.id, user.email);
+
+    return { user: this.omitPassword(user), token: ourToken };
   }
 
   async login(dto: LoginDto) {
